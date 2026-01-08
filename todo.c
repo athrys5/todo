@@ -7,26 +7,24 @@ const int MAX_LEN = 100;
 char menu[OPTIONS_NUM] = {'A', 'B', 'E'};
 
 typedef struct Node {
-	int val;
 	char *text;
 	struct Node *next;
 } Node;
 
 void print_list(Node *head){
-	Node *slider = head; 
+	Node *slider = head;
+        int i = 1;	
 	while(slider != NULL){
-		printf("%s", slider->text);
+		printf("%d: %s\n", i, slider->text);
 		slider = slider->next;
 	}
 }
 
-Node *crea_nodo(int val, char* line){
+Node *crea_nodo(char* line){
 	Node *new = (Node*)malloc(sizeof(Node));
-	new->val = val;
 	new->text = strcpy((char*)malloc(strlen(line) + 1), line);
 	new->next = NULL;
 	return new;
-
 }
 
 int is_valid(char *v){
@@ -68,13 +66,11 @@ void add_item(Node *head){
 	printf("Enter new todo item:\n");
 	scanf("%s", item);
 	
-	while(tail->next != NULL){
+	while(tail != NULL){
 		tail = tail->next;	
 	}
 
-	tail->next = crea_nodo(tail->val + 1, item);
-	
-	tail = tail->next;
+	tail = crea_nodo(item);
 
 	fprintf(file, "%s\n", tail->text);
 	
@@ -82,21 +78,69 @@ void add_item(Node *head){
 	return;
 }
 
-void remove_item(Node *head){
+int list_length(Node *head){
 	Node *tail = head;
-	File *file = fopen("todolist.txt", "w");
-	int n = 0;
+	int count = 0;
+	while(tail != NULL){
+		tail = tail->next;
+		count++;
+	}
+	return count;
+}
 
-	printf("Select the item to delete");
+void remove_node(Node **head, Node *prev, Node *current){
+	if(prev == NULL){
+		*head = (*head)->next; 
+		free(current);
+		current = NULL;
+	}else{
+		prev->next = current->next;
+		free(current);
+		current = NULL;
+	}
+	return;
+	
+}
 
+void remove_item(Node **head){
+	Node *tail = *head;
+	Node *prev = NULL;
+	FILE *file = fopen("todolist.txt", "w");
+	int n = 1;
+	int max = list_length(*head);
+	
+	if(max == 0){
+		printf("No available item to delete\n");
+		return; 
+	}
+
+	do{
+		printf("Select the number corresponding to the item to delete\n");
+		print_list(*head);
+		scanf("%d", &n);
+		if(n > max) printf("Invalid number. Chose a proper one.\n");		
+	}while(n > max);
+
+	for(int i = 1; i < n; i++){
+	       	prev = tail;
+		tail = tail->next;
+	}
+	
+	remove_node(&(*head), prev, tail);
+	
+	print_list(*head);
+
+	return; 
 }
 
 int process_option(char opt, Node *head){
 	switch(opt) {
 		case 'A':
 			add_item(head);
+			break;
 		case 'B':
-			remove_item(head);
+			remove_item(&head);
+			break;
 	}
 	return 1;
 }
@@ -124,10 +168,10 @@ int main(void){
 	while(fgets(line, MAX_LEN, file)){
 	
 		if(head == NULL){
-        		head = crea_nodo(i, line);
+        		head = crea_nodo(line);
             		tail = head; 
       	 	} else {
-			tail->next = crea_nodo(i, line);
+			tail->next = crea_nodo(line);
            	 	tail = tail->next;
         	}
         
