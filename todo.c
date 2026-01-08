@@ -17,6 +17,7 @@ void print_list(Node *head){
 	while(slider != NULL){
 		printf("%d: %s\n", i, slider->text);
 		slider = slider->next;
+		i++;
 	}
 }
 
@@ -46,15 +47,15 @@ char display_menu(){
 	
 	while(!valid){
 		printf("Chose an option:\nA: Add item to the todo list\nB: Remove item from the todo list \nE: Exit program\n");
-		scanf("%c", &c);
+		scanf(" %c", &c);
 		valid = is_valid(&c);
 	}
 	
 	return c;
 }
 
-void add_item(Node *head){
-	Node *tail = head;
+void add_item(Node **head){
+	Node *tail = *head;
 	FILE *file = fopen("todolist.txt", "a");
 	char item[MAX_LEN];
 
@@ -66,11 +67,15 @@ void add_item(Node *head){
 	printf("Enter new todo item:\n");
 	scanf("%s", item);
 	
-	while(tail != NULL){
-		tail = tail->next;	
+	if(*head == NULL){
+		*head = crea_nodo(item);
+		tail = *head;
+	}else{
+		while(tail->next != NULL) tail = tail->next;	
+		
+		tail->next = crea_nodo(item);
+		tail = tail->next;
 	}
-
-	tail = crea_nodo(item);
 
 	fprintf(file, "%s\n", tail->text);
 	
@@ -133,13 +138,13 @@ void remove_item(Node **head){
 	return; 
 }
 
-int process_option(char opt, Node *head){
-	switch(opt) {
+int process_option(char opt, Node **head){
+	switch(opt){
 		case 'A':
-			add_item(head);
-			break;
+			add_item(&(*head));
+			return 0;
 		case 'B':
-			remove_item(&head);
+			remove_item(&(*head));
 			break;
 	}
 	return 1;
@@ -184,7 +189,7 @@ int main(void){
     
 	while(!exit){
 		char opt = display_menu();
-		exit = process_option(opt, head);
+		exit = process_option(opt, &head);
 	}
      
 	if(head != NULL){
