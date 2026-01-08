@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define OPTIONS_NUM 3
+#define OPTIONS_NUM 5
 
 const int MAX_LEN = 100; 
-char menu[OPTIONS_NUM] = {'A', 'B', 'E'};
+char menu[OPTIONS_NUM] = {'A', 'B', 'C', 'L', 'E'};
 
 typedef struct Node {
 	char *text;
@@ -13,7 +13,7 @@ typedef struct Node {
 
 void print_list(Node *head){
 	Node *slider = head;
-        int i = 1;	
+        int i = 0;	
 	while(slider != NULL){
 		printf("%d: %s\n", i, slider->text);
 		slider = slider->next;
@@ -21,7 +21,7 @@ void print_list(Node *head){
 	}
 }
 
-Node *crea_nodo(char* line){
+Node *new_node(char* line){
 	Node *new = (Node*)malloc(sizeof(Node));
 	new->text = strcpy((char*)malloc(strlen(line) + 1), line);
 	new->next = NULL;
@@ -46,7 +46,7 @@ char display_menu(){
 	int valid = 0;
 	
 	while(!valid){
-		printf("Chose an option:\nA: Add item to the todo list\nB: Remove item from the todo list \nE: Exit program\n");
+		printf("Chose an option:\nA: Add item to the todo list\nB: Remove item from the todo list \nC: Clear Terminal\nL: Show List\nE: Exit program\n");
 		scanf(" %c", &c);
 		valid = is_valid(&c);
 	}
@@ -55,32 +55,21 @@ char display_menu(){
 }
 
 void add_item(Node **head){
-	Node *tail = *head;
-	FILE *file = fopen("todolist.txt", "a");
 	char item[MAX_LEN];
-
-	if(file == NULL){
-		printf("Error opening the file\n");
-		return;
-	}
-
+	Node *tail = *head; 
+	
 	printf("Enter new todo item:\n");
 	scanf("%s", item);
 	
 	if(*head == NULL){
-		*head = crea_nodo(item);
+		*head = new_node(item);
 		tail = *head;
 	}else{
 		while(tail->next != NULL) tail = tail->next;	
 		
-		tail->next = crea_nodo(item);
+		tail->next = new_node(item);
 		tail = tail->next;
 	}
-
-	fprintf(file, "%s\n", tail->text);
-	
-	fclose(file);
-	return;
 }
 
 int list_length(Node *head){
@@ -110,8 +99,7 @@ void remove_node(Node **head, Node *prev, Node *current){
 void remove_item(Node **head){
 	Node *tail = *head;
 	Node *prev = NULL;
-	FILE *file = fopen("todolist.txt", "w");
-	int n = 1;
+	int n = 0;
 	int max = list_length(*head);
 	
 	if(max == 0){
@@ -122,11 +110,12 @@ void remove_item(Node **head){
 	do{
 		printf("Select the number corresponding to the item to delete\n");
 		print_list(*head);
-		scanf("%d", &n);
-		if(n > max) printf("Invalid number. Chose a proper one.\n");		
-	}while(n > max);
+		scanf(" %d", &n);
+		printf("The selected number is: %d\n", n);
+		if(n >= max) printf("Invalid number. Chose a proper one.\n");		
+	}while(n >= max);
 
-	for(int i = 1; i < n; i++){
+	for(int i = 0; i < n; i++){
 	       	prev = tail;
 		tail = tail->next;
 	}
@@ -138,6 +127,25 @@ void remove_item(Node **head){
 	return; 
 }
 
+void write_file(Node *head){
+	FILE *f = fopen("todolist.txt","w");
+	
+	if(f == NULL){
+		perror("Error opening the file");
+		return;
+	}
+
+	while(head != NULL){
+		fprintf(f, "%s\n", head->text);
+		head = head->next;
+	}
+}
+
+void clear(){
+	printf("\033[2J\033[H");
+	fflush(stdout);
+}
+
 int process_option(char opt, Node **head){
 	switch(opt){
 		case 'A':
@@ -145,56 +153,50 @@ int process_option(char opt, Node **head){
 			return 0;
 		case 'B':
 			remove_item(&(*head));
-			break;
+			return 0;
+		case 'C':
+			clear();
+			return 0;
+		case 'L':
+			print_list(*head);
+			return 0;
+	
+		case 'E':
+			write_file(*head);
+			return 1;
+		default:
+			return 0;
 	}
 	return 1;
 }
 
+void init_list(Node **head){
+	FILE *f = fopen("todolist.txt", "r");
+	Node *tail = *head;
+    	char line[MAX_LEN];
+	
+	if(f == NULL) return;
+
+	while(fgets(line, MAX_LEN, f)) {
+		tail = new_node(line);
+		tail = tail->next;	
+	}
+
+	fclose(f);
+}
+
 int main(void){
 	Node *head = NULL;
- 	Node *tail = NULL;
-    	FILE *file = fopen("todolist.txt", "r");
-    	int i = 0;
-    	char line[MAX_LEN];
     	int exit = 0; 
-    	
-	if(file == NULL){
-        	file = fopen("todolist.txt", "w");
-        	
-		if(file == NULL){
-            		perror("Error");
-            		return 1;
-        	}
+    
+	init_list(&head);
 
-        	fclose(file);
-        	return 0;  // File creato ma vuoto, esci
-    	}
-    
-	while(fgets(line, MAX_LEN, file)){
-	
-		if(head == NULL){
-        		head = crea_nodo(line);
-            		tail = head; 
-      	 	} else {
-			tail->next = crea_nodo(line);
-           	 	tail = tail->next;
-        	}
-        
-        	i++;
-    	}
-    
-   	fclose(file);
-    
-
-    
 	while(!exit){
 		char opt = display_menu();
 		exit = process_option(opt, &head);
 	}
      
-	if(head != NULL){
-        	print_list(head);
-    	}
+	if(head != NULL) print_list(head);
 
 	return 0;
 }

@@ -1,4 +1,3 @@
 Run
-lk
-Walk
 Study
+Play
